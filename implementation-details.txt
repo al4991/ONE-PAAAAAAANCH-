@@ -1,0 +1,34 @@
+Requirements listed in slides
+	- Title Screen, and game mode
+		- Essentially, implement the gamestate that was in the space invaders hw. 
+
+	- Must have a way to quit the game
+	- Music/sound effects
+	- 3 different levels
+	- Local multiplayer or AI
+		- Local multiplayer is probably easier to do.  
+	- Animation or particle effects
+		- So sprite loop (y)
+
+Physics of our game
+	- There should be four types of enitities minimum	
+		- player
+		- tile
+		- dangerous tile 
+		- annoying 
+	- Collision 
+		- player + solid tile
+			- nothing. This is just like being on the floor 
+
+		- player + dangerous tile/annoying
+			- if direct contact, player dies. 
+			- if player hits, player is propelled in a direction based on where they were in relation. 
+				- if annoying is hit, it will disappear
+				- Currently, the plan to handle hitting, is to create an entity directly connected to the player that will collide instead of the player. With this logic:
+					- hitbox is on the left/right: player is propelled in opposite direction, diagonally
+					- hitbox is above/below: player is propelled in opposite direction
+
+		- annoying + dangerous tile/tile
+			- disappears 
+			
+		- 
