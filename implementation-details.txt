@@ -11,11 +11,12 @@ Requirements listed in slides
 		- So sprite loop (y)
 
 Physics of our game
-	- There should be four types of enitities minimum	
+	- There should be four types of entities minimum	
 		- player
 		- tile
 		- dangerous tile 
 		- annoying 
+		- win token 
 	- Collision 
 		- player + solid tile
 			- nothing. This is just like being on the floor 
@@ -31,4 +32,5 @@ Physics of our game
 		- annoying + dangerous tile/tile
 			- disappears 
 			
-		- 
+		- player + win token 
+			- you win. Triggers loading of next game level
