@@ -10,6 +10,14 @@ Requirements listed in slides
 	- Animation or particle effects
 		- So sprite loop (y)
 
+
+
+Todo for the mapthing 
+	- Set bounds
+	- Spawn in entities properly
+	- implement collision with tiles
+	- 
+
 Physics of our game
 	- There should be four types of entities minimum	
 		- player
@@ -34,3 +42,4 @@ Physics of our game
 			
 		- player + win token 
 			- you win. Triggers loading of next game level
+
