@@ -32,6 +32,7 @@ using namespace std;
 
 #define FIXED_TIMESTEP 0.0166666f
 #define MAX_TIMESTEPS 6
+#define TILE_SIZE 0.1f 
 
 SDL_Window* displayWindow;
 
@@ -62,6 +63,11 @@ GLuint LoadTexture(const char *filePath) {
 
 	stbi_image_free(image);
 	return retTexture;
+}
+
+void worldToTileCoordinates(float worldX, float worldY, int *gridX, int *gridY) {
+	*gridX = (int)(worldX / TILE_SIZE);
+	*gridY = (int)(worldY / -TILE_SIZE);
 }
 
 struct FlareMapEntity {
@@ -190,8 +196,8 @@ private:
 
 				FlareMapEntity newEntity;
 				newEntity.type = type;
-				newEntity.x = std::atoi(xPosition.c_str());
-				newEntity.y = std::atoi(yPosition.c_str());
+				newEntity.x = std::atoi(xPosition.c_str()) * TILE_SIZE;
+				newEntity.y = std::atoi(yPosition.c_str()) * -TILE_SIZE;
 				entities.push_back(newEntity);
 
 				// In the slides, x and y are multiplied by tilesize
@@ -200,6 +206,19 @@ private:
 		return true;
 	}
 
+};
+
+struct SpriteSheet {
+	unsigned int textureID; 
+	int spriteCountX;
+	int spriteCountY;
+
+	SpriteSheet() {}
+	SpriteSheet(unsigned int textureID_, int x, int y) {
+		textureID = textureID_; 
+		spriteCountX = x;
+		spriteCountY = y; 
+	}
 };
 
 class Entity {
@@ -223,7 +242,9 @@ public:
 	float accX = 0.0f;
 	float accY = 0.0f;
 
-	GLuint spritesheet; 
+	SpriteSheet sheet; 
+	std::vector<int> sprites; 
+	int spriteIndex; 
 
 	bool collidedTop = false;
 	bool collidedBottom = false;
@@ -231,19 +252,61 @@ public:
 	bool collidedRight = false;
 	bool isStatic = true;
 
+	void Render(ShaderProgram& p) {
+		glm::mat4 modelMatrix = glm::mat4(1.0f); 
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(x, y, 0.0f));
+		p.SetModelMatrix(modelMatrix);
+
+		float u = (float)(((int)sprites[spriteIndex]) % sheet.spriteCountX) / (float)sheet.spriteCountX;
+		float v = (float)(((int)sprites[spriteIndex]) / sheet.spriteCountX) / (float)sheet.spriteCountY;
+		float spriteWidth = 1.0 / (float)sheet.spriteCountX;
+		float spriteHeight = 1.0 / (float)sheet.spriteCountY;
+		GLfloat texCoords[] = {
+		u, v + spriteHeight,
+		u + spriteWidth, v,
+		u, v,
+		u + spriteWidth, v,
+		u, v + spriteHeight,
+		u + spriteWidth, v + spriteHeight
+		};
+		float aspect = width / height;
+		float vertices[] = {
+			-0.5f * TILE_SIZE , -0.5f * TILE_SIZE,
+			0.5f * TILE_SIZE, 0.5f * TILE_SIZE,
+			-0.5f * TILE_SIZE , 0.5f * TILE_SIZE,
+			0.5f * TILE_SIZE, 0.5f * TILE_SIZE,
+			-0.5f * TILE_SIZE, -0.5f * TILE_SIZE ,
+			0.5f * TILE_SIZE , -0.5f * TILE_SIZE
+		};
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glBindTexture(GL_TEXTURE_2D, sheet.textureID);
+
+		glVertexAttribPointer(p.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
+		glEnableVertexAttribArray(p.positionAttribute);
+		glVertexAttribPointer(p.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords);
+		glEnableVertexAttribArray(p.texCoordAttribute);
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		glDisableVertexAttribArray(p.positionAttribute);
+		glDisableVertexAttribArray(p.texCoordAttribute);
+	}
+
 };
 
 struct GameState {
-	GLuint Texture;
-	GLuint FontTexture;
+	SpriteSheet Texture;
+	SpriteSheet FontTexture;
 	FlareMap map;
 	Entity player;
 	ShaderProgram program; 
 
-
-	float TILE_SIZE = 0.1f; 
-	int SPRITE_COUNT_X = 16; 
-	int SPRITE_COUNT_Y = 8; 
+	void Render(ShaderProgram& p) {
+		DrawTiles(); 
+		player.Render(p); 
+	}
 
 	void DrawTiles() {
 		std::vector<float> vertexData;
@@ -251,10 +314,10 @@ struct GameState {
 		for (int y = 0; y < map.mapHeight; y++) {
 			for (int x = 0; x < map.mapWidth; x++) {
 				if (map.mapData[y][x] != 0) { 
-					float u = (float)(((int)map.mapData[y][x]) % SPRITE_COUNT_X) / (float)SPRITE_COUNT_X;
-					float v = (float)(((int)map.mapData[y][x]) / SPRITE_COUNT_X) / (float)SPRITE_COUNT_Y;
-					float spriteWidth = 1.0f / (float)SPRITE_COUNT_X;
-					float spriteHeight = 1.0f / (float)SPRITE_COUNT_Y;
+					float u = (float)(((int)map.mapData[y][x]) % Texture.spriteCountX) / (float)Texture.spriteCountX;
+					float v = (float)(((int)map.mapData[y][x]) / Texture.spriteCountX) / (float)Texture.spriteCountY;
+					float spriteWidth = 1.0f / (float)Texture.spriteCountX;
+					float spriteHeight = 1.0f / (float)Texture.spriteCountY;
 					vertexData.insert(vertexData.end(), {
 					TILE_SIZE * x, -TILE_SIZE * y,
 					TILE_SIZE * x, (-TILE_SIZE * y) - TILE_SIZE,
@@ -286,13 +349,12 @@ struct GameState {
 		glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoordData.data());
 		glEnableVertexAttribArray(program.texCoordAttribute);
 
-		glBindTexture(GL_TEXTURE_2D, Texture);
+		glBindTexture(GL_TEXTURE_2D, Texture.textureID);
 		glDrawArrays(GL_TRIANGLES, 0, vertexData.size()/2);
 
 		glDisableVertexAttribArray(program.positionAttribute);
 		glDisableVertexAttribArray(program.texCoordAttribute);
 	}
-
 
 };
 //
@@ -362,40 +424,47 @@ int main(int argc, char *argv[])
 	program.Load(RESOURCE_FOLDER"vertex_textured.glsl", RESOURCE_FOLDER"fragment_textured.glsl");
 
 	glClearColor(0.039f, 0.596f, 0.674f, 1.0f);
-
-	FlareMap map = FlareMap();
-	map.Load("level2.txt");
-
-
-
 	glm::mat4 projectionMatrix = glm::mat4(1.0f);
 	glm::mat4 modelMatrix = glm::mat4(1.0f);
 	glm::mat4 viewMatrix = glm::mat4(1.0f);
 	projectionMatrix = glm::ortho(-1.777f, 1.777f, -1.0f, 1.0f, -1.0f, 1.0f);
-
 	glUseProgram(program.programID);
 
-	GameState doggo;
-	doggo.map = FlareMap();
-	doggo.map.Load("level2.txt"); 
-	doggo.Texture = LoadTexture(RESOURCE_FOLDER"arne_sprites.PNG");
-	doggo.program = program;
-	doggo.player = Entity(doggo.map.entities[0].x, doggo.map.entities[0].y, 0.1f, 0.1f, false); 
-	doggo.player.spritesheet = LoadTexture(RESOURCE_FOLDER"cuties.PNG"); 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	SpriteSheet tiles = SpriteSheet(LoadTexture(RESOURCE_FOLDER"arne_sprites.PNG"), 16, 8);
+	SpriteSheet cuties = SpriteSheet(LoadTexture(RESOURCE_FOLDER"cuties.PNG"), 6, 8); 
 
-	for (FlareMapEntity i : doggo.map.entities) {
+
+	FlareMap map; 
+	map.Load("level2.txt"); 
+
+	GameState test;
+	test.map = map;
+	test.Texture = tiles;
+	test.program = program;
+
+	Entity player; 
+	player = Entity(test.map.entities[0].x, test.map.entities[0].y, TILE_SIZE, TILE_SIZE, false);
+	player.sheet = cuties;
+	player.spriteIndex = 0; 
+	player.sprites = { 16 }; 
+
+	test.player = player;
+
+	/*for (FlareMapEntity i : test.map.entities) {
 		std::cout << i.type << std::endl; 
 	}
-	std::cout << "HELLO ===============================" << std::endl; 
+	std::cout << "HELLO ===============================" << std::endl; */
 
-	float yah = 0.0f; 
-	float yeet = 0.0f; 
+	float one = 0.0f; 
+	float two = 0.0f; 
+
     SDL_Event event;
     bool done = false;
     while (!done) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		viewMatrix = glm::mat4(1.0f);
-		viewMatrix = glm::translate(viewMatrix, glm::vec3(yah, yeet, 0.0f));
+		viewMatrix = glm::translate(viewMatrix, glm::vec3(one, two, 0.0f));
 		const Uint8 *keys = SDL_GetKeyboardState(NULL);
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
@@ -403,20 +472,20 @@ int main(int argc, char *argv[])
             }
         }
 		if (keys[SDL_SCANCODE_A]) {
-			yah += 0.1f; 
+			one += 0.1f; 
 		}
 		else if (keys[SDL_SCANCODE_D]) {
-			yah -= 0.1f; 
+			one -= 0.1f; 
 		}else if (keys[SDL_SCANCODE_W]) {
-			yeet += 0.1f; 
+			two += 0.1f; 
 		}
 		else if (keys[SDL_SCANCODE_S]) {
-			yeet -= 0.1f; 
+			two -= 0.1f; 
 		}
 		program.SetModelMatrix(modelMatrix); 
 		program.SetProjectionMatrix(projectionMatrix);
 		program.SetViewMatrix(viewMatrix);        
-		doggo.DrawTiles(); 
+		test.Render(program);
 
         SDL_GL_SwapWindow(displayWindow);
     }
