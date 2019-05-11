@@ -34,7 +34,6 @@ using namespace std;
 #define MAX_TIMESTEPS 6
 #define TILE_SIZE 0.1f
 float lastFrameTicks = 0.0f;
-std::vector<int> solidTiles = { 0, 1, 2, 16, 17, 18, 19, 32, 33, 34, 35, 100, 101};
 
 SDL_Window* displayWindow;
 
@@ -169,7 +168,7 @@ private:
                             mapData[y][x] = val - 1;
                         }
                         else {
-                            mapData[y][x] = -1;
+                            mapData[y][x] = 0;
                         }
                     }
                 }
@@ -275,14 +274,13 @@ public:
             u, v + spriteHeight,
             u + spriteWidth, v + spriteHeight
         };
-        float aspect = width / height;
         float vertices[] = {
-            -0.5f * aspect * TILE_SIZE, -0.5f * TILE_SIZE,
-            0.5f * aspect * TILE_SIZE, 0.5f * TILE_SIZE,
-            -0.5f * aspect * TILE_SIZE, 0.5f * TILE_SIZE,
-            0.5f * aspect * TILE_SIZE, 0.5f * TILE_SIZE,
-            -0.5f * aspect * TILE_SIZE, -0.5f * TILE_SIZE,
-            0.5f * aspect * TILE_SIZE, -0.5f * TILE_SIZE
+            -0.5f * TILE_SIZE , -0.5f * TILE_SIZE,
+            0.5f * TILE_SIZE, 0.5f * TILE_SIZE,
+            -0.5f * TILE_SIZE , 0.5f * TILE_SIZE,
+            0.5f * TILE_SIZE, 0.5f * TILE_SIZE,
+            -0.5f * TILE_SIZE, -0.5f * TILE_SIZE ,
+            0.5f * TILE_SIZE , -0.5f * TILE_SIZE
         };
 
         glEnable(GL_BLEND);
@@ -300,115 +298,24 @@ public:
         glDisableVertexAttribArray(p.texCoordAttribute);
     }
 
-    void Update(float elapsed) {
-        if (!isStatic) {
-            velX = lerp(velX, 0.0f, elapsed * fricX);
-            velY = lerp(velY, 0.0f, elapsed * fricY);
-            velX += accX * elapsed;
-            velY += accY * elapsed;
-            if (!collidedBottom) {
-                velY += gravityY * elapsed;
-            }
-            x += velX * elapsed;
-            y += velY * elapsed;
-        }
+    void movePlayer(float elapsed) {
+        //        worldToTileCoordinates(player.x, player.y, &gridX, &gridY);
+        velX = lerp(velX, 0.0f, elapsed * fricX);
+        velY = lerp(velY, 0.0f, elapsed * fricY);
+        velX += accX * elapsed;
+        velY += accY * elapsed;
+        velY += gravityY * elapsed;
+        x += velX * elapsed;
+        y += velY * elapsed;
     }
 
-    void resolveCollisionX(Entity& entity) {
-        float x_dist = x - entity.x;
-        float x_pen = fabs(x_dist - width - entity.width);
-        if (entity.x > x) {
-            x -= x_pen + 0.1f;
-        }
-        else {
-            x += x_pen + 0.1f;
-        }
-    }
-
-    void resolveCollisionY(Entity& entity) {
-        float y_dist = y - entity.y;
-        float y_pen = fabs(y_dist - height - entity.height);
-        if (entity.y > y) {
-            y -= y_pen + 0.05f;
-        }
-        else {
-            y += y_pen + 0.05f;
-        }
-    }
-
-    bool CollidesWith(Entity& entity) {
-        float x_dist = fabs(x - entity.x) - (width + entity.width);
-        float y_dist = fabs(y - entity.y) - (height + entity.height);
-        return (x_dist <= 0 && y_dist <= 0);
-    }
-    
-
-    void checkTileCollision(FlareMap *map) {
+    void checkCollision(unsigned int **mapData) {
         int gridX; 
         int gridY; 
-        int gridBottomY;
-        int gridLeftX;
-        int gridRightX;
-        int gridTopY;
-
         worldToTileCoordinates(x, y, &gridX, &gridY); 
-        worldToTileCoordinates(x - (width/2), y - (height / 2), &gridLeftX, &gridBottomY);
-        worldToTileCoordinates(x + (width / 2), y + (height / 2), &gridRightX, &gridTopY);
-        
-        if (gridX >= 0 && gridX < map->mapWidth &&
-            gridY >= 0 && gridY < map->mapHeight &&
-            gridLeftX >= 0 && gridLeftX < map->mapWidth &&
-            gridTopY >= 0 && gridTopY < map->mapHeight &&
-            gridRightX >= 0 && gridRightX < map->mapWidth &&
-            gridBottomY >= 0 && gridBottomY < map->mapHeight) {
 
-            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridBottomY][gridX]) != solidTiles.end()) {
-                collidedBottom = true;
-                float pen = fabs((-TILE_SIZE * gridBottomY) - (y - (height / 2)));
-                y += pen;
-                velX = 0.0f;
-                velY = 0.0f;
-                accX = 0.0f;
-                accY = 0.0f;
-            }
-            else {
-                collidedBottom = false;
-            }
-
-            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridTopY][gridX]) != solidTiles.end()) {
-                collidedTop = true;
-                float pen = fabs(((-TILE_SIZE * gridTopY) - TILE_SIZE)  - (y + (height / 2)));
-                y -= pen;
-                velX = 0.0f;
-                velY = 0.0f;
-                accX = 0.0f;
-                accY = 0.0f;
-            }
-            else {
-                collidedTop = false;
-            }
-            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridLeftX]) != solidTiles.end()) {
-                collidedLeft = true;
-                float pen = fabs(((TILE_SIZE * gridX)) - (x - (width / 2)));
-                x += pen;
-                velX = 0.0f;
-                accX = 0.0f;
-            }
-            else {
-                collidedLeft = false;
-            }
-            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridRightX]) != solidTiles.end()) {
-                collidedRight = true;
-                float pen = fabs((TILE_SIZE * gridX + TILE_SIZE) - (x + (width / 2)));
-                x -= pen;
-                velX = 0.0f;
-                accX = 0.0f;
-            }
-            else {
-                collidedRight = false;
-            }
-        }
     }
+
 };
 
 struct GameState {
@@ -422,17 +329,13 @@ struct GameState {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f)); 
         glm::mat4 viewMatrix = glm::mat4(1.0f); 
-        float xOffset = std::min(std::max(-player.x, ((float)map.mapWidth * -TILE_SIZE) + 1.777f), -1.777f);
-        float yOffset = std::min(std::max(-player.y, ((float)map.mapHeight * -TILE_SIZE) + 4.0f ), 2.0f);
-        viewMatrix = glm::translate(viewMatrix, glm::vec3(xOffset, yOffset, 0.0f)); 
+        viewMatrix = glm::translate(viewMatrix, glm::vec3(-player.x, -player.y, 0.0f)); 
         p.SetModelMatrix(modelMatrix); 
         p.SetViewMatrix(viewMatrix); 
 
         DrawTiles();
         player.Render(p);
-        player.Update(elapsed);
-        player.checkTileCollision(&map); 
-
+        player.movePlayer(elapsed);
     }
 
     void DrawTiles() {
@@ -440,7 +343,7 @@ struct GameState {
         std::vector<float> texCoordData;
         for (int y = 0; y < map.mapHeight; y++) {
             for (int x = 0; x < map.mapWidth; x++) {
-                if (map.mapData[y][x] != -1) {
+                if (map.mapData[y][x] != 0) {
                     float u = (float)(((int)map.mapData[y][x]) % Texture.spriteCountX) / (float)Texture.spriteCountX;
                     float v = (float)(((int)map.mapData[y][x]) / Texture.spriteCountX) / (float)Texture.spriteCountY;
                     float spriteWidth = 1.0f / (float)Texture.spriteCountX;
@@ -484,6 +387,10 @@ struct GameState {
     }
 
 
+    bool checkCollision() {
+
+        return false;
+    }
 
 };
 
@@ -561,7 +468,7 @@ int main(int argc, char *argv[])
 
     // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     SpriteSheet tiles = SpriteSheet(LoadTexture(RESOURCE_FOLDER"arne_sprites.PNG"), 16, 8);
-    SpriteSheet cuties = SpriteSheet(LoadTexture(RESOURCE_FOLDER"yooyoo.PNG"), 6, 4);
+    SpriteSheet cuties = SpriteSheet(LoadTexture(RESOURCE_FOLDER"cuties.PNG"), 6, 8);
 
     GameState test;
     test.map.Load(RESOURCE_FOLDER"level2.txt");
@@ -569,19 +476,24 @@ int main(int argc, char *argv[])
     test.program = program;
 
     Entity player;
-    player = Entity(test.map.entities[0].x, test.map.entities[0].y + 1.0f, TILE_SIZE, TILE_SIZE, false);
+    player = Entity(test.map.entities[0].x, test.map.entities[0].y, TILE_SIZE, TILE_SIZE, false);
     player.sheet = cuties;
     player.spriteIndex = 0;
-    player.sprites = { 0 };
+    player.sprites = { 16 };
 
     test.player = player;
 
+    float one = 0.0f;
+    float two = 0.0f;
 
     SDL_Event event;
     bool done = false;
     while (!done) {
+        glClear(GL_COLOR_BUFFER_BIT);/*
+        viewMatrix = glm::mat4(1.0f);
+        viewMatrix = glm::translate(viewMatrix, glm::vec3(one, two, 0.0f));*/
+        //viewMatrix = glm::translate(viewMatrix, glm::vec3(-player.x, -player.y, 0.0f));
 
-        glClear(GL_COLOR_BUFFER_BIT);
 
         const Uint8 *keys = SDL_GetKeyboardState(NULL);
         float ticks = (float)SDL_GetTicks() / 1000.0f;
@@ -592,27 +504,46 @@ int main(int argc, char *argv[])
             if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
                 done = true;
             }
-        } if (keys[SDL_SCANCODE_LEFT]) {
-            test.player.velX = -.5f;
+        }
+        if (keys[SDL_SCANCODE_A]) {
+            one += 0.1f;
+        }
+        else if (keys[SDL_SCANCODE_D]) {
+            one -= 0.1f;
+        }
+        else if (keys[SDL_SCANCODE_W]) {
+            two -= 0.1f;
+        }
+        else if (keys[SDL_SCANCODE_S]) {
+            two += 0.1f;
+        }
+
+        if (keys[SDL_SCANCODE_LEFT]) {
+            test.player.velX = -1.25f;
             test.player.velY = 0.0f;
             //            test.player.accY = 0.0f;
 
-        } if (keys[SDL_SCANCODE_RIGHT]) {
-            test.player.velX = .5f;
+        }
+        if (keys[SDL_SCANCODE_RIGHT]) {
+            test.player.velX = 1.25f;
             test.player.velY = 0.0f;
             //            test.player.accY = 0.0f;
-        } if (keys[SDL_SCANCODE_UP]) {
-            test.player.velY = .5f;
+        }
+        if (keys[SDL_SCANCODE_UP]) {
+            test.player.velY = 1.25f;
             test.player.velX = 0.0f;
             if (test.player.velY > 2.0f) {
                 test.player.velY = 1.25f;
             }
-        } if (keys[SDL_SCANCODE_SPACE]) {
-            if (test.player.collidedBottom) {
-                test.player.velY = .5; 
-                test.player.collidedBottom = false; 
-            }
+            //            test.player.accX = 0.0f;
         }
+        //        if(keys[SDL_SCANCODE_DOWN]) {
+        //            test.player.velY = -0.75f;
+        //            test.player.accY = -1.0f;
+        //            test.player.velX = 0.0f;
+        //            test.player.accX = 0.0f;
+        //        }
+
 
         test.Render(program, elapsed);
 
@@ -622,4 +553,5 @@ int main(int argc, char *argv[])
     SDL_Quit();
     return 0;
 }
+
 
