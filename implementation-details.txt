@@ -1,8 +1,7 @@
 Requirements listed in slides
-	- Title Screen, and game mode
+	- DONE Title Screen, and game mode
 		- Essentially, implement the gamestate that was in the space invaders hw. 
-
-	- Must have a way to quit the game
+	- DONE Must have a way to quit the game 
 	- Music/sound effects
 	- 3 different levels
 	- Local multiplayer or AI
@@ -19,12 +18,12 @@ Todo for the mapthing
 	- 
 
 Physics of our game
-	- There should be four types of entities minimum	
+	- Besides Tiles, we need to have these three entity types
 		- player
-		- tile
-		- dangerous tile 
-		- annoying 
+		- annoying
 		- win token 
+	- There are two types of Tiles, but we need to figure out best way to handle collision with a dangerous tile
+
 	- Collision 
 		- player + solid tile
 			- nothing. This is just like being on the floor 

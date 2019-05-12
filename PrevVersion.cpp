@@ -46,23 +46,23 @@ float lerp(float v0, float v1, float t) {
 GLuint LoadTexture(const char *filePath) {
     int w, h, comp;
     unsigned char* image = stbi_load(filePath, &w, &h, &comp, STBI_rgb_alpha);
-    
+
     if (image == NULL) {
         std::cout << "Unable to load image. Make sure the path is correct\n";
-        
+
     }
-    
+
     GLuint retTexture;
     glGenTextures(1, &retTexture);
     glBindTexture(GL_TEXTURE_2D, retTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-    
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    
+
     stbi_image_free(image);
     return retTexture;
 }
@@ -91,7 +91,7 @@ public:
         }
         delete mapData;
     }
-    
+
     void Load(const std::string fileName) {
         std::ifstream infile(fileName);
         if (infile.fail()) {
@@ -112,14 +112,14 @@ public:
             }
         }
     }
-    
+
     int mapWidth;
     int mapHeight;
     unsigned int **mapData;
     std::vector<FlareMapEntity> entities;
-    
+
 private:
-    
+
     bool ReadHeader(std::ifstream &stream) {
         std::string line;
         mapWidth = -1;
@@ -148,7 +148,7 @@ private:
             return true;
         }
     }
-    
+
     bool ReadLayerData(std::ifstream &stream) {
         std::string line;
         while (getline(stream, line)) {
@@ -177,7 +177,7 @@ private:
         }
         return true;
     }
-    
+
     bool ReadEntityData(std::ifstream &stream) {
         std::string line;
         std::string type;
@@ -195,26 +195,26 @@ private:
                 std::string xPosition, yPosition;
                 getline(lineStream, xPosition, ',');
                 getline(lineStream, yPosition, ',');
-                
+
                 FlareMapEntity newEntity;
                 newEntity.type = type;
                 newEntity.x = std::atoi(xPosition.c_str()) * TILE_SIZE;
                 newEntity.y = std::atoi(yPosition.c_str()) * -TILE_SIZE;
                 entities.push_back(newEntity);
-                
+
                 // In the slides, x and y are multiplied by tilesize
             }
         }
         return true;
     }
-    
+
 };
 
 struct SpriteSheet {
     unsigned int textureID;
     int spriteCountX;
     int spriteCountY;
-    
+
     SpriteSheet() {}
     SpriteSheet(unsigned int textureID_, int x, int y) {
         textureID = textureID_;
@@ -233,8 +233,8 @@ public:
         height = height_;
         isStatic = isStatic_;
     }
-    
-    
+
+
     float x = 0.0f;
     float y = 0.0f;
     float width;
@@ -243,26 +243,26 @@ public:
     float velY = 0.0f;
     float accX = 0.0f;
     float accY = 0.0f;
-    float fricX = 0.0f;
+    float fricX = -1.0f;
     float fricY = 0.0f;
     float gravityY = -1.3f;
-    
+
     SpriteSheet sheet;
-    
+
     std::vector<int> sprites;
     int spriteIndex;
-    
+
     bool collidedTop = false;
     bool collidedBottom = false;
     bool collidedLeft = false;
     bool collidedRight = false;
     bool isStatic = true;
-    
+
     void Render(ShaderProgram& p) {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::translate(modelMatrix, glm::vec3(x, y, 0.0f));
         p.SetModelMatrix(modelMatrix);
-        
+
         float u = (float)(((int)sprites[spriteIndex]) % sheet.spriteCountX) / (float)sheet.spriteCountX;
         float v = (float)(((int)sprites[spriteIndex]) / sheet.spriteCountX) / (float)sheet.spriteCountY;
         float spriteWidth = 1.0 / (float)sheet.spriteCountX;
@@ -284,36 +284,36 @@ public:
             -0.5f * aspect * TILE_SIZE, -0.5f * TILE_SIZE,
             0.5f * aspect * TILE_SIZE, -0.5f * TILE_SIZE
         };
-        
+
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glBindTexture(GL_TEXTURE_2D, sheet.textureID);
-        
+
         glVertexAttribPointer(p.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
         glEnableVertexAttribArray(p.positionAttribute);
         glVertexAttribPointer(p.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords);
         glEnableVertexAttribArray(p.texCoordAttribute);
-        
+
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        
+
         glDisableVertexAttribArray(p.positionAttribute);
         glDisableVertexAttribArray(p.texCoordAttribute);
     }
-    
-    void Update(float elapsed) {
+
+    void Update(float elapsed, FlareMap* map) {
         if (!isStatic) {
             velX = lerp(velX, 0.0f, elapsed * fricX);
             velY = lerp(velY, 0.0f, elapsed * fricY);
+            
             velX += accX * elapsed;
-            velY += accY * elapsed;
-            if (!collidedBottom) {
-                velY += gravityY * elapsed;
-            }
+            velY += gravityY * elapsed;
+            
             x += velX * elapsed;
             y += velY * elapsed;
+            checkTileCollision(map);
         }
     }
-    
+
     void resolveCollisionX(Entity& entity) {
         float x_dist = x - entity.x;
         float x_pen = fabs(x_dist - width - entity.width);
@@ -324,7 +324,7 @@ public:
             x += x_pen + 0.1f;
         }
     }
-    
+
     void resolveCollisionY(Entity& entity) {
         float y_dist = y - entity.y;
         float y_pen = fabs(y_dist - height - entity.height);
@@ -335,23 +335,23 @@ public:
             y += y_pen + 0.05f;
         }
     }
-    
+
     bool CollidesWith(Entity& entity) {
         float x_dist = fabs(x - entity.x) - (width + entity.width);
         float y_dist = fabs(y - entity.y) - (height + entity.height);
         return (x_dist <= 0 && y_dist <= 0);
     }
     
-    
+
     void checkTileCollision(FlareMap *map) {
-        int gridX;
-        int gridY;
+        int gridX; 
+        int gridY; 
         int gridBottomY;
         int gridLeftX;
         int gridRightX;
         int gridTopY;
-        
-        worldToTileCoordinates(x, y, &gridX, &gridY);
+
+        worldToTileCoordinates(x, y, &gridX, &gridY); 
         worldToTileCoordinates(x - (width/2), y - (height / 2), &gridLeftX, &gridBottomY);
         worldToTileCoordinates(x + (width / 2), y + (height / 2), &gridRightX, &gridTopY);
         
@@ -361,27 +361,23 @@ public:
             gridTopY >= 0 && gridTopY < map->mapHeight &&
             gridRightX >= 0 && gridRightX < map->mapWidth &&
             gridBottomY >= 0 && gridBottomY < map->mapHeight) {
-            
+
             if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridBottomY][gridX]) != solidTiles.end()) {
                 collidedBottom = true;
                 float pen = fabs((-TILE_SIZE * gridBottomY) - (y - (height / 2)));
-                y += pen;
-                velX = 0.0f;
+                y += pen + 0.000001f;
                 velY = 0.0f;
-                accX = 0.0f;
                 accY = 0.0f;
             }
             else {
                 collidedBottom = false;
             }
-            
+
             if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridTopY][gridX]) != solidTiles.end()) {
                 collidedTop = true;
                 float pen = fabs(((-TILE_SIZE * gridTopY) - TILE_SIZE)  - (y + (height / 2)));
-                y -= pen;
-                velX = 0.0f;
+                y -= pen + 0.000001f;
                 velY = 0.0f;
-                accX = 0.0f;
                 accY = 0.0f;
             }
             else {
@@ -390,7 +386,7 @@ public:
             if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridLeftX]) != solidTiles.end()) {
                 collidedLeft = true;
                 float pen = fabs(((TILE_SIZE * gridX)) - (x - (width / 2)));
-                x += pen;
+                x += pen + 0.000001f;
                 velX = 0.0f;
                 accX = 0.0f;
             }
@@ -400,7 +396,7 @@ public:
             if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridRightX]) != solidTiles.end()) {
                 collidedRight = true;
                 float pen = fabs((TILE_SIZE * gridX + TILE_SIZE) - (x + (width / 2)));
-                x -= pen;
+                x -= pen + 0.000001f;
                 velX = 0.0f;
                 accX = 0.0f;
             }
@@ -417,24 +413,23 @@ struct GameState {
     FlareMap map = FlareMap();
     Entity player = Entity();
     ShaderProgram program;
-    
+
     void Render(ShaderProgram& p, float elapsed) {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
-        modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
-        glm::mat4 viewMatrix = glm::mat4(1.0f);
+        modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f)); 
+        glm::mat4 viewMatrix = glm::mat4(1.0f); 
         float xOffset = std::min(std::max(-player.x, ((float)map.mapWidth * -TILE_SIZE) + 1.777f), -1.777f);
         float yOffset = std::min(std::max(-player.y, ((float)map.mapHeight * -TILE_SIZE) + 4.0f ), 2.0f);
-        viewMatrix = glm::translate(viewMatrix, glm::vec3(xOffset, yOffset, 0.0f));
-        p.SetModelMatrix(modelMatrix);
-        p.SetViewMatrix(viewMatrix);
-        
+        viewMatrix = glm::translate(viewMatrix, glm::vec3(xOffset, yOffset, 0.0f)); 
+        p.SetModelMatrix(modelMatrix); 
+        p.SetViewMatrix(viewMatrix); 
+
         DrawTiles();
         player.Render(p);
-        player.Update(elapsed);
-        player.checkTileCollision(&map);
-        
+        player.Update(elapsed, &map);
+
     }
-    
+
     void DrawTiles() {
         std::vector<float> vertexData;
         std::vector<float> texCoordData;
@@ -452,7 +447,7 @@ struct GameState {
                         TILE_SIZE * x, -TILE_SIZE * y,
                         (TILE_SIZE * x) + TILE_SIZE, (-TILE_SIZE * y) - TILE_SIZE,
                         (TILE_SIZE * x) + TILE_SIZE, -TILE_SIZE * y
-                    });
+                        });
                     texCoordData.insert(texCoordData.end(), {
                         u, v,
                         u, v + (spriteHeight),
@@ -460,31 +455,31 @@ struct GameState {
                         u, v,
                         u + spriteWidth, v + (spriteHeight),
                         u + spriteWidth, v
-                    });
-                    
+                        });
+
                 }
             }
         }
-        
+
         glUseProgram(program.programID);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
+
         glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertexData.data());
         glEnableVertexAttribArray(program.positionAttribute);
-        
+
         glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoordData.data());
         glEnableVertexAttribArray(program.texCoordAttribute);
-        
+
         glBindTexture(GL_TEXTURE_2D, Texture.textureID);
         glDrawArrays(GL_TRIANGLES, 0, vertexData.size() / 2);
-        
+
         glDisableVertexAttribArray(program.positionAttribute);
         glDisableVertexAttribArray(program.texCoordAttribute);
     }
-    
-    
-    
+
+
+
 };
 
 //void DrawText(ShaderProgram &program, int fontTexture, std::string text, float size, float spacing) {
@@ -543,82 +538,73 @@ int main(int argc, char *argv[])
     displayWindow = SDL_CreateWindow("My Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(displayWindow);
     SDL_GL_MakeCurrent(displayWindow, context);
-    
+
 #ifdef _WINDOWS
     glewInit();
 #endif
-    
+
     ShaderProgram program;
     program.Load(RESOURCE_FOLDER"vertex_textured.glsl", RESOURCE_FOLDER"fragment_textured.glsl");
-    
+
     glClearColor(0.039f, 0.596f, 0.674f, 1.0f);
     glm::mat4 projectionMatrix = glm::mat4(1.0f);
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     glm::mat4 viewMatrix = glm::mat4(1.0f);
     projectionMatrix = glm::ortho(-1.777f, 1.777f, -1.0f, 1.0f, -1.0f, 1.0f);
-    program.SetProjectionMatrix(projectionMatrix);
+    program.SetProjectionMatrix(projectionMatrix); 
     glUseProgram(program.programID);
-    
+
     // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     SpriteSheet tiles = SpriteSheet(LoadTexture(RESOURCE_FOLDER"arne_sprites.PNG"), 16, 8);
     SpriteSheet cuties = SpriteSheet(LoadTexture(RESOURCE_FOLDER"yooyoo.PNG"), 6, 4);
-    
+
     GameState test;
     test.map.Load(RESOURCE_FOLDER"level2.txt");
     test.Texture = tiles;
     test.program = program;
-    
+
     Entity player;
     player = Entity(test.map.entities[0].x, test.map.entities[0].y + 1.0f, TILE_SIZE, TILE_SIZE, false);
     player.sheet = cuties;
     player.spriteIndex = 0;
     player.sprites = { 0 };
-    
+
     test.player = player;
-    
-    
+
+
     SDL_Event event;
     bool done = false;
     while (!done) {
-        
+
         glClear(GL_COLOR_BUFFER_BIT);
-        
+
         const Uint8 *keys = SDL_GetKeyboardState(NULL);
         float ticks = (float)SDL_GetTicks() / 1000.0f;
         float elapsed = ticks - lastFrameTicks;
         lastFrameTicks = ticks;
-        
+
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
                 done = true;
             }
         } if (keys[SDL_SCANCODE_LEFT]) {
-            test.player.velX = -.5f;
-            test.player.velY = 0.0f;
-            //            test.player.accY = 0.0f;
-            
+            test.player.accX = -0.5f; 
         } if (keys[SDL_SCANCODE_RIGHT]) {
-            test.player.velX = .5f;
-            test.player.velY = 0.0f;
-            //            test.player.accY = 0.0f;
+            test.player.accX = 0.5f;
         } if (keys[SDL_SCANCODE_UP]) {
-            test.player.velY = .5f;
-            test.player.velX = 0.0f;
-            if (test.player.velY > 2.0f) {
-                test.player.velY = 1.25f;
-            }
+            test.player.y = .01f;
         } if (keys[SDL_SCANCODE_SPACE]) {
             if (test.player.collidedBottom) {
-                test.player.velY = .5;
-                test.player.collidedBottom = false;
+                test.player.velY = 1.0f; 
+                test.player.collidedBottom = false; 
             }
         }
-        
+
         test.Render(program, elapsed);
-        
+
         SDL_GL_SwapWindow(displayWindow);
     }
-    
+
     SDL_Quit();
     return 0;
 }
