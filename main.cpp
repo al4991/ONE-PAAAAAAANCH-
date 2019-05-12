@@ -241,7 +241,7 @@ public:
     float velY = 0.0f;
     float accX = 0.0f;
     float accY = 0.0f;
-    float fricX = 0.0f;
+    float fricX = 1.0f;
     float fricY = 0.0f;
     float gravityY = -1.3f;
 
@@ -301,7 +301,7 @@ public:
     void Update(float elapsed, FlareMap* map) {
         collidedBottom = collidedLeft = collidedRight = collidedTop = false;
 
-        //velX = lerp(velX, 0.0f, elapsed * fricX);
+        velX = lerp(velX, 0.0f, elapsed * fricX);
         velY = lerp(velY, 0.0f, elapsed * fricY);
 
         velX += accX * elapsed;
@@ -342,68 +342,55 @@ public:
     }
 
     void checkTileCollision(FlareMap *map) {
-        int gridX;
-        int gridY;
-        int gridBottomY;
-        int gridLeftX;
-        int gridRightX;
-        int gridTopY;
 
-        worldToTileCoordinates(x, y, &gridX, &gridY);
-        worldToTileCoordinates(x - (width / 2), y - (height / 2), &gridLeftX, &gridBottomY);
-        worldToTileCoordinates(x + (width / 2), y + (height / 2), &gridRightX, &gridTopY);
+        int gridX; 
+        int gridY; 
 
-        if (gridX >= 0 && gridX < map->mapWidth &&
-            gridY >= 0 && gridY < map->mapHeight &&
-            gridLeftX >= 0 && gridLeftX < map->mapWidth &&
-            gridTopY >= 0 && gridTopY < map->mapHeight &&
-            gridRightX >= 0 && gridRightX < map->mapWidth &&
-            gridBottomY >= 0 && gridBottomY < map->mapHeight) {
-
-            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridBottomY][gridX]) != solidTiles.end()) {
+        //bottom
+        worldToTileCoordinates(x, y - 0.5f * height, &gridX, &gridY);
+        if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
+            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridX]) != solidTiles.end()) {
                 collidedBottom = true;
-                float pen = fabs((-TILE_SIZE * gridBottomY) - (y - (height / 2)));
-                y += pen + (TILE_SIZE * 0.00000000001f);
-                velX = 0.0f;
-                velY = 0.0f;
-                accX = 0.0f;
-                accY = 0.0f;
+                velY = 0.0f; 
+                accY = 0.0f; 
+                float penetration = fabs((-TILE_SIZE * gridY) - (y - height / 2));
+                y += penetration + (TILE_SIZE * 0.00000000001f);
             }
-            else {
-                collidedBottom = false;
-            }
+        }
 
-            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridTopY][gridX]) != solidTiles.end()) {
+        //top
+        worldToTileCoordinates(x, y + 0.5 * height, &gridX, &gridY);
+        if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
+            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridX]) != solidTiles.end()) {
                 collidedTop = true;
-                float pen = fabs(((-TILE_SIZE * gridTopY) - TILE_SIZE) - (y + (height / 2)));
-                y -= pen + (TILE_SIZE * 0.00000000001f);
-                velX = 0.0f;
                 velY = 0.0f;
-                accX = 0.0f;
                 accY = 0.0f;
+                float penetration = fabs(((-TILE_SIZE * gridY) - TILE_SIZE) - (y + height / 2));
+                y -= penetration + (TILE_SIZE * 0.00000000001f);
             }
-            else {
-                collidedTop = false;
+        }
+
+        //left
+        worldToTileCoordinates(x - 0.5 * width, y, &gridX, &gridY);
+        if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
+            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridX]) != solidTiles.end()) {
+                collidedLeft = true; 
+                velX = 0.0f; 
+                accX = 0.0f; 
+                float penetration = fabs(((TILE_SIZE * gridX) + TILE_SIZE) - (x - width / 2));
+                x += penetration + (TILE_SIZE * 0.00000000001f);
             }
-            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridLeftX]) != solidTiles.end()) {
-                collidedLeft = true;
-                float pen = fabs(((TILE_SIZE * gridX)) - (x - (width / 2)));
-                x += pen + (TILE_SIZE * 0.00000000001f);
-                velX = 0.0f;
-                accX = 0.0f;
-            }
-            else {
-                collidedLeft = false;
-            }
-            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridRightX]) != solidTiles.end()) {
+        }
+
+        //right
+        worldToTileCoordinates(x + 0.5 * width, y, &gridX, &gridY);
+        if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
+            if (std::find(solidTiles.begin(), solidTiles.end(), map->mapData[gridY][gridX]) != solidTiles.end()) { 
                 collidedRight = true;
-                float pen = fabs((TILE_SIZE * gridX + TILE_SIZE) - (x + (width / 2)));
-                x -= pen + (TILE_SIZE * 0.00000000001f);
                 velX = 0.0f;
                 accX = 0.0f;
-            }
-            else {
-                collidedRight = false;
+                float penetration = fabs((TILE_SIZE * gridX) - (x + width / 2));
+                x -= penetration + (TILE_SIZE * 0.00000000001f);
             }
         }
     }
@@ -521,10 +508,10 @@ struct GameState {
 
         case (STATE_GAME_LEVEL):
             if (keys[SDL_SCANCODE_LEFT]) {
-                player.accX = -1.5f;
+                player.accX = -0.5f;
             } 
             if (keys[SDL_SCANCODE_RIGHT]) {
-                player.accX = 1.5f;
+                player.accX = 0.5f;
             } 
             if (keys[SDL_SCANCODE_UP]) {
                 player.x = 0.0f;
