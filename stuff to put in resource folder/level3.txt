@@ -35,6 +35,12 @@ data=
 107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107,107
 
 [ObjectsLayer]
+# Player
+type=Player
+location=1,9,2,2
+
+
+[ObjectsLayer]
 # Annoying
 type=Annoying
 location=9,7,1,1
@@ -88,9 +94,4 @@ location=42,1,1,1
 # Victory
 type=Victory
 location=45,9,1,1
-
-[ObjectsLayer]
-# Player
-type=Player
-location=1,9,2,2
 
