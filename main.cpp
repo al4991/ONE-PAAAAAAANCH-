@@ -419,6 +419,8 @@ struct GameState {
     }
 
     void Render() {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         switch (mode) {
         case (STATE_MAIN_MENU): 
             RenderMenu(); 
@@ -428,8 +430,8 @@ struct GameState {
         case(STATE_GAME_LEVEL1):
             RenderLevel(level1);
             player.Render(program);
-            //annoying.Render(program); 
-            //wintoken.Render(program); 
+            annoying.Render(program); 
+            wintoken.Render(program); 
             break;
 
 
@@ -640,29 +642,29 @@ struct GameState {
         switch (mode) {
         case (STATE_GAME_LEVEL1): 
             player = Entity(
-                level1.entities[0].x + TILE_SIZE, level1.entities[0].y + (TILE_SIZE * 2),
+                level1.entities[0].x + TILE_SIZE, level1.entities[0].y,
                 TILE_SIZE, TILE_SIZE, false
             );
             player.sheet = PlayerSprites;
             player.spriteIndex = 0;
             player.sprites = { 0 };
 
-            //annoying = Entity(
-            //  level1.entities[0].x + (TILE_SIZE * 4), level1.entities[0].y + (TILE_SIZE * 2),
-            //  TILE_SIZE, TILE_SIZE, false
-            //);
-            //annoying.sheet = Texture;
-            //annoying.spriteIndex = 76; 
-            //annoying.spriteIndex = { 76 }; 
-            //
-            //wintoken = Entity(
-            //  level1.entities[0].x + (TILE_SIZE * 8), level1.entities[0].y + (TILE_SIZE * 2),
-            //  TILE_SIZE, TILE_SIZE, false
-            //);
-            //wintoken.sheet = Texture;
-            //wintoken.spriteIndex = 48;
-            //wintoken.spriteIndex = { 48 }; 
-            //
+            annoying = Entity(
+                level1.entities[0].x + (TILE_SIZE * 4), level1.entities[0].y - TILE_SIZE*3,
+                TILE_SIZE, TILE_SIZE, false
+            );
+            annoying.sheet = Texture;
+            annoying.spriteIndex = 0; 
+            annoying.sprites = { 76 }; 
+            
+            wintoken = Entity(
+                level1.entities[0].x + (TILE_SIZE * 8), level1.entities[0].y - TILE_SIZE*3,
+                TILE_SIZE, TILE_SIZE, false
+            );
+            wintoken.sheet = Texture;
+            wintoken.spriteIndex = 0;
+            wintoken.sprites = { 48 }; 
+            
 
             break;
 
@@ -686,9 +688,9 @@ struct GameState {
             player.sprites = { 0 };
             break;
 
-        case (STATE_MAIN_MENU):
+        /*case (STATE_MAIN_MENU):
         case (STATE_GAME_OVER):
-            break; 
+            break; */
             //maybe move plaer entity off screen
         }
     }
