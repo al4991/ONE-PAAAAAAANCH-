@@ -55,23 +55,23 @@ float lerp(float v0, float v1, float t) {
 GLuint LoadTexture(const char *filePath) {
     int w, h, comp;
     unsigned char* image = stbi_load(filePath, &w, &h, &comp, STBI_rgb_alpha);
-    
+
     if (image == NULL) {
         std::cout << "Unable to load image. Make sure the path is correct\n";
-        
+
     }
-    
+
     GLuint retTexture;
     glGenTextures(1, &retTexture);
     glBindTexture(GL_TEXTURE_2D, retTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-    
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    
+
     stbi_image_free(image);
     return retTexture;
 }
@@ -100,7 +100,7 @@ public:
         }
         delete mapData;
     }
-    
+
     void Load(const std::string fileName) {
         std::ifstream infile(fileName);
         if (infile.fail()) {
@@ -121,14 +121,14 @@ public:
             }
         }
     }
-    
+
     int mapWidth;
     int mapHeight;
     unsigned int **mapData;
     std::vector<FlareMapEntity> entities;
-    
+
 private:
-    
+
     bool ReadHeader(std::ifstream &stream) {
         std::string line;
         mapWidth = -1;
@@ -157,7 +157,7 @@ private:
             return true;
         }
     }
-    
+
     bool ReadLayerData(std::ifstream &stream) {
         std::string line;
         while (getline(stream, line)) {
@@ -186,7 +186,7 @@ private:
         }
         return true;
     }
-    
+
     bool ReadEntityData(std::ifstream &stream) {
         std::string line;
         std::string type;
@@ -204,7 +204,7 @@ private:
                 std::string xPosition, yPosition;
                 getline(lineStream, xPosition, ',');
                 getline(lineStream, yPosition, ',');
-                
+
                 FlareMapEntity newEntity;
                 newEntity.type = type;
                 newEntity.x = std::atoi(xPosition.c_str()) * TILE_SIZE;
@@ -214,19 +214,55 @@ private:
         }
         return true;
     }
-    
+
 };
 
 struct SpriteSheet {
     unsigned int textureID;
     int spriteCountX;
     int spriteCountY;
-    
+
     SpriteSheet() {}
     SpriteSheet(unsigned int textureID_, int x, int y) {
         textureID = textureID_;
         spriteCountX = x;
         spriteCountY = y;
+    }
+
+
+    void justDraw(ShaderProgram& program, int index) {
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        float u = (float)(((int)index) % spriteCountX) / (float)spriteCountX;
+        float v = (float)(((int)index) / spriteCountX) / (float)spriteCountY;
+        float width = 1.0 / (float)spriteCountX;
+        float height = 1.0 / (float)spriteCountY;
+        GLfloat texCoords[] = {
+            u, v + height,
+            u + width, v,
+            u, v,
+            u + width, v,
+            u, v + height,
+            u + width, v + height
+        };
+        float vertices[] = {
+            -0.5f * TILE_SIZE  , -0.5f * TILE_SIZE,
+            0.5f * TILE_SIZE , 0.5f * TILE_SIZE  ,
+            -0.5f * TILE_SIZE  , 0.5f * TILE_SIZE  ,
+            0.5f * TILE_SIZE  , 0.5f * TILE_SIZE ,
+            -0.5f * TILE_SIZE , -0.5f * TILE_SIZE  ,
+            0.5f * TILE_SIZE  , -0.5f * TILE_SIZE
+        };
+
+
+        glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
+        glEnableVertexAttribArray(program.positionAttribute);
+        glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords);
+        glEnableVertexAttribArray(program.texCoordAttribute);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glDisableVertexAttribArray(program.positionAttribute);
+        glDisableVertexAttribArray(program.texCoordAttribute);
     }
 };
 
@@ -240,7 +276,7 @@ public:
         height = height_;
         isStatic = isStatic_;
     }
-    
+
     float x = 0.0f;
     float y = 0.0f;
     float width;
@@ -251,10 +287,10 @@ public:
     float accY = 0.0f;
     float fricX = 1.5f;
     float fricY = 0.0f;
-    float gravityY = -1.3f;
-    
+    float gravityY = -2.2f;
+
     SpriteSheet sheet;
-    
+
     std::vector<int> sprites;
     int spriteIndex;
     float wallJumpFrames = 0.0f;
@@ -265,12 +301,12 @@ public:
     bool dangerCollide = false;
     bool wallJump = false;
     bool isStatic = true;
-    
+
     void Render(ShaderProgram& p) {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::translate(modelMatrix, glm::vec3(x, y, 0.0f));
         p.SetModelMatrix(modelMatrix);
-        
+
         float u = (float)(((int)sprites[spriteIndex]) % sheet.spriteCountX) / (float)sheet.spriteCountX;
         float v = (float)(((int)sprites[spriteIndex]) / sheet.spriteCountX) / (float)sheet.spriteCountY;
         float spriteWidth = 1.0f / (float)sheet.spriteCountX;
@@ -292,39 +328,39 @@ public:
             -0.5f * aspect * TILE_SIZE, -0.5f * TILE_SIZE,
             0.5f * aspect * TILE_SIZE, -0.5f * TILE_SIZE
         };
-        
+
         glBindTexture(GL_TEXTURE_2D, sheet.textureID);
-        
+
         glVertexAttribPointer(p.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
         glEnableVertexAttribArray(p.positionAttribute);
         glVertexAttribPointer(p.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoords);
         glEnableVertexAttribArray(p.texCoordAttribute);
-        
+
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        
+
         glDisableVertexAttribArray(p.positionAttribute);
         glDisableVertexAttribArray(p.texCoordAttribute);
     }
-    
+
     bool Update(float elapsed, FlareMap* map) {
         collidedBottom = collidedTop = dangerCollide = false;
         wallJumpFrames += elapsed;
-        if (wallJumpFrames > 0.8f) {
+        if (wallJumpFrames > 0.2f) {
             collidedLeft = collidedRight = wallJump = false;
             wallJumpFrames = 0.0f;
         }
-        
+
         velX = lerp(velX, 0.0f, elapsed * fricX);
         velY = lerp(velY, 0.0f, elapsed * fricY);
-        
+
         velX += accX * elapsed;
         velY += gravityY * elapsed;
-        
+
         x += velX * elapsed;
         y += velY * elapsed;
         return checkTileCollision(map);
     }
-    
+
     //void resolveCollisionX(Entity& entity) {
     //  float x_dist = x - entity.x;
     //  float x_pen = fabs(x_dist - width - entity.width);
@@ -335,7 +371,7 @@ public:
     //      x += x_pen + 0.1f;
     //  }
     //}
-    
+
     //void resolveCollisionY(Entity& entity) {
     //  float y_dist = y - entity.y;
     //  float y_pen = fabs(y_dist - height - entity.height);
@@ -346,18 +382,18 @@ public:
     //      y += y_pen + 0.05f;
     //  }
     //}
-    
+
     bool CollidesWith(Entity& entity) {
         float x_dist = fabs(x - entity.x) - (width + entity.width);
         float y_dist = fabs(y - entity.y) - (height + entity.height);
         return (x_dist <= 0 && y_dist <= 0);
     }
-    
+
     bool checkTileCollision(FlareMap *map) {
-        
+
         int gridX;
         int gridY;
-        
+
         //bottom
         worldToTileCoordinates(x, y - 0.5f * height, &gridX, &gridY);
         if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
@@ -372,7 +408,7 @@ public:
                 dangerCollide = true;
             }
         }
-        
+
         //top
         worldToTileCoordinates(x, y + 0.5 * height, &gridX, &gridY);
         if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
@@ -387,7 +423,7 @@ public:
                 dangerCollide = true;
             }
         }
-        
+
         //left
         worldToTileCoordinates(x - 0.5 * width, y, &gridX, &gridY);
         if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
@@ -406,7 +442,7 @@ public:
                 dangerCollide = true;
             }
         }
-        
+
         //right
         worldToTileCoordinates(x + 0.5 * width, y, &gridX, &gridY);
         if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
@@ -429,76 +465,117 @@ public:
     }
 };
 
+
+struct Hitbox {
+    Entity body;
+    float timeAlive;
+    bool direction;
+
+    bool checkFulfill(FlareMap* map) {
+        int gridX;
+        int gridY;
+
+        //top
+        worldToTileCoordinates(body.x, body.y + 0.5 * body.height, &gridX, &gridY);
+        if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
+            if (std::find(dangerTiles.begin(), dangerTiles.end(), map->mapData[gridY][gridX]) != dangerTiles.end()) {
+                return true;
+            }
+        }
+        //bottom
+        worldToTileCoordinates(body.x, body.y - 0.5f * body.height, &gridX, &gridY);
+        if (gridX >= 0 && gridX < map->mapWidth && gridY >= 0 && gridY < map->mapHeight) {
+            if (std::find(dangerTiles.begin(), dangerTiles.end(), map->mapData[gridY][gridX]) != dangerTiles.end()) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
 struct GameState {
     SpriteSheet Texture;
     SpriteSheet PlayerSprites;
     GLuint font;
-    
+
     GameMode mode = STATE_MAIN_MENU;
-    
+
     FlareMap level1 = FlareMap();
     FlareMap level2 = FlareMap();
     FlareMap level3 = FlareMap();
-    
+
     Entity player;
     Entity annoying;
     Entity victory;
     ShaderProgram program;
-    
+    Hitbox* hitbox = NULL;
+
+
     GameState(ShaderProgram& p) {
         program = p;
     }
-    
+
     void Render() {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         switch (mode) {
-            case (STATE_MAIN_MENU):
-                RenderMenu();
-                break;
-                
-                
-            case(STATE_GAME_LEVEL1):
-                RenderLevel(level1);
-                player.Render(program);
-                //annoying.Render(program);
-                victory.Render(program);
-                break;
-                
-                
-            case(STATE_GAME_LEVEL2):
-                RenderLevel(level2);
-                player.Render(program);
-                victory.Render(program);
-                
-                break;
-                
-                
-            case(STATE_GAME_LEVEL3):
-                RenderLevel(level3);
-                player.Render(program);
-                victory.Render(program);
-                
-                break;
-                
-                
-            case (STATE_GAME_OVER):
-                DrawText("oof", 0.3f, 0.0f, -1.1f, 0.8f);
-                break;
+        case (STATE_MAIN_MENU):
+            RenderMenu();
+            break;
+
+
+        case(STATE_GAME_LEVEL1):
+            if (hitbox) {
+                hitbox->body.Render(program);
+            }
+            RenderLevel(level1);
+            
+            player.Render(program);
+            //annoying.Render(program);
+            victory.Render(program);
+            break;
+
+
+        case(STATE_GAME_LEVEL2):
+            if (hitbox) {
+                hitbox->body.Render(program);
+            }
+            RenderLevel(level2);
+
+            player.Render(program);
+            victory.Render(program);
+
+            break;
+
+
+        case(STATE_GAME_LEVEL3):
+            if (hitbox) {
+                hitbox->body.Render(program);
+            }
+            RenderLevel(level3);
+
+            player.Render(program);
+            victory.Render(program);
+            break;
+
+
+        case (STATE_GAME_OVER):
+            DrawText("oof", 0.3f, 0.0f, -1.1f, 0.8f);
+            break;
         }
     }
-    
+
     void RenderLevel(FlareMap& map) {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         glm::mat4 viewMatrix = glm::mat4(1.0f);
         float xOffset = std::min(std::max(-player.x, ((float)map.mapWidth * -TILE_SIZE) + 1.777f), -1.777f);
-        float yOffset = std::min(std::max(-player.y, ((float)map.mapHeight * -TILE_SIZE)), 1.0f);
+        float yOffset = std::min(std::max(-player.y, ((float)map.mapHeight * TILE_SIZE)), 2.0f);
         viewMatrix = glm::translate(viewMatrix, glm::vec3(xOffset, yOffset, 0.0f));
         program.SetModelMatrix(modelMatrix);
         program.SetViewMatrix(viewMatrix);
         DrawTiles(map);
     }
-    
+
     void RenderMenu() {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         glm::mat4 viewMatrix = glm::mat4(1.0f);
@@ -508,101 +585,176 @@ struct GameState {
         DrawText("PRESS THE SPACEBAR", 0.1f, 0.00001f, -0.4f, -0.5f);
         DrawText("PRESS Q to QUIT", 0.05f, 0.00001f, 1.0f, -0.9f);
     }
-    
+
     void Update(float elapsed) {
         switch (mode) {
-            case (STATE_MAIN_MENU):
-                break;
-                
-            case(STATE_GAME_LEVEL1):
-                player.Update(elapsed, &level1);
-                if (player.Update(elapsed, &level1)) {
-                    mode = STATE_MAIN_MENU;
+        case (STATE_MAIN_MENU):
+            break;
+
+        case(STATE_GAME_LEVEL1):
+            if (player.CollidesWith(victory)) {
+                player.x = 0.0f;
+                player.y = 0.0f;
+                mode = STATE_GAME_LEVEL2;
+                SetEntities();
+            }
+
+            if (hitbox) {
+                hitbox->timeAlive += elapsed;
+                if (hitbox->timeAlive > 1.0f) {
+                    hitbox = NULL;
                 }
-                if (player.CollidesWith(victory)) {
-                    player.x = 0.0f;
-                    player.y = 0.0f;
-                    mode = STATE_GAME_LEVEL2;
+                else {
+                    hitbox->body.x = player.x;
+                    hitbox->body.y = hitbox->direction ?
+                        player.y + (player.height*0.5f) + (TILE_SIZE * 0.5f) :
+                        player.y - (player.height*0.5f) - (TILE_SIZE * 0.5f);
+
+                    if (hitbox->checkFulfill(&level1)) {
+                        player.velY = hitbox->direction ? -1.0f : 1.0f;
+                        hitbox = NULL;
+                    }
                 }
-                
-                break;
-            case(STATE_GAME_LEVEL2):
-                player.Update(elapsed, &level2);
-                if (player.Update(elapsed, &level2)) {
-                    mode = STATE_MAIN_MENU;
+            }
+
+            if (player.Update(elapsed, &level1)) {
+                mode = STATE_MAIN_MENU;
+            }
+            
+            break;
+
+        case(STATE_GAME_LEVEL2):
+            if (player.CollidesWith(victory)) {
+                player.x = 0.0f;
+                player.y = 0.0f;
+                mode = STATE_GAME_LEVEL3;
+                SetEntities();
+            }
+            if (hitbox) {
+                hitbox->timeAlive += elapsed;
+                if (hitbox->timeAlive > 1.0f) {
+                    hitbox = NULL;
                 }
-                if (player.CollidesWith(victory)) {
-                    player.x = 0.0f;
-                    player.y = 0.0f;
-                    mode = STATE_GAME_LEVEL3;
+                else {
+                    hitbox->body.x = player.x;
+                    hitbox->body.y = hitbox->direction ?
+                        player.y + (player.height*0.5f) + (TILE_SIZE * 0.5f) :
+                        player.y - (player.height*0.5f) - (TILE_SIZE * 0.5f);
+
+                    if (hitbox->checkFulfill(&level2)) {
+                        player.velY = hitbox->direction ? -1.0f : 1.0f;
+                        hitbox = NULL;
+                    }
                 }
-                
-                break;
-            case(STATE_GAME_LEVEL3):
-                player.Update(elapsed, &level3);
-                if (player.Update(elapsed, &level3)) {
-                    mode = STATE_MAIN_MENU;
+            }
+
+            if (player.Update(elapsed, &level2)) {
+                mode = STATE_MAIN_MENU;
+            }
+            break;
+
+        case(STATE_GAME_LEVEL3):
+            if (player.CollidesWith(victory)) {
+                mode = STATE_MAIN_MENU;
+            }
+            if (hitbox) {
+                hitbox->timeAlive += elapsed;
+                if (hitbox->timeAlive > 1.0f) {
+                    hitbox = NULL;
                 }
-                if (player.CollidesWith(victory)) {
-                    mode = STATE_MAIN_MENU;
+                else {
+                    hitbox->body.x = player.x;
+                    hitbox->body.y = hitbox->direction ?
+                        player.y + (player.height*0.5f) + (TILE_SIZE * 0.5f) :
+                        player.y - (player.height*0.5f) - (TILE_SIZE * 0.5f);
+
+                    if (hitbox->checkFulfill(&level3)) {
+                        player.velY = hitbox->direction ? -1.0f : 1.0f;
+                        hitbox = NULL;
+                    }
                 }
-                
-                break;
-                
+            }
+
+            if (player.Update(elapsed, &level3)) {
+                mode = STATE_MAIN_MENU;
+            }
+            break;
         }
     }
-    
+
     void ProcessInput(const Uint8 * keys) {
         switch (mode) {
-            case (STATE_MAIN_MENU):
-                if (keys[SDL_SCANCODE_SPACE]) {
-                    mode = STATE_GAME_LEVEL1;
-                    SetEntities();
+        case (STATE_MAIN_MENU):
+            if (keys[SDL_SCANCODE_SPACE]) {
+                mode = STATE_GAME_LEVEL1;
+                SetEntities();
+            }
+            break;
+
+        case (STATE_GAME_LEVEL1):
+        case (STATE_GAME_LEVEL2):
+        case (STATE_GAME_LEVEL3):
+
+            if (keys[SDL_SCANCODE_LEFT]) {
+                player.accX = -1.05f;
+            }
+            if (keys[SDL_SCANCODE_RIGHT]) {
+                player.accX = 1.05f;
+            }
+            if (!(keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_RIGHT])) {
+                player.accX = 0.0f;
+            }
+            if (keys[SDL_SCANCODE_UP]) {
+                player.x = 0.0f;
+                player.y = 0.0f;
+            }
+            if (keys[SDL_SCANCODE_SPACE]) {
+                if (player.collidedBottom) {
+                    player.velY = 1.0f;
                 }
-                break;
-                
-            case (STATE_GAME_LEVEL1):
-            case (STATE_GAME_LEVEL2):
-            case (STATE_GAME_LEVEL3):
-                
-                if (keys[SDL_SCANCODE_LEFT]) {
-                    player.accX = -0.75f;
+            }
+            if (keys[SDL_SCANCODE_Q]) {
+                mode = STATE_MAIN_MENU;
+                player.x = 0.0f;
+                player.y = 0.0f;
+                player.velX = 0.0f;
+                player.velY = 0.0f;
+            }
+            if (keys[SDL_SCANCODE_W]) {
+                if (hitbox == NULL) {
+                    hitbox = new Hitbox();
+                    hitbox->timeAlive = 0.0f;
+                    hitbox->direction = true;
+                    hitbox->body = Entity(player.x, player.y + (player.height*0.5f) + (TILE_SIZE * 0.5f), TILE_SIZE * 0.5f, TILE_SIZE * 0.5f, true);
+                    hitbox->body.sheet = Texture;
+                    hitbox->body.spriteIndex = 0;
+                    hitbox->body.sprites = { 22 };
                 }
-                if (keys[SDL_SCANCODE_RIGHT]) {
-                    player.accX = 0.75f;
+            }
+            if (keys[SDL_SCANCODE_S]) {
+                if (hitbox == NULL) {
+                    hitbox = new Hitbox();
+                    hitbox->timeAlive = 0.0f;
+                    hitbox->direction = false;
+                    hitbox->body = Entity(player.x, player.y - (player.height*0.5f) - (TILE_SIZE * 0.5f), TILE_SIZE * 0.5f, TILE_SIZE * 0.5f, true);
+                    hitbox->body.sheet = Texture;
+                    hitbox->body.spriteIndex = 0;
+                    hitbox->body.sprites = { 22 };
+
                 }
-                if (!(keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_RIGHT])) {
-                    player.accX = 0.0f;
-                }
-                if (keys[SDL_SCANCODE_UP]) {
-                    player.x = 0.0f;
-                    player.y = 0.0f;
-                }
-                if (keys[SDL_SCANCODE_SPACE]) {
-                    //                    if (player.collidedBottom) {
-                    player.velY = 0.8f;
-                    //                    }
-                }
-                if (keys[SDL_SCANCODE_Q]) {
-                    mode = STATE_MAIN_MENU;
-                    player.x = 0.0f;
-                    player.y = 0.0f;
-                    player.velX = 0.0f;
-                    player.velY = 0.0f;
-                }
-                
-                break;
-                
-            case (STATE_GAME_OVER):
-                if (keys[SDL_SCANCODE_SPACE]) {
-                    mode = STATE_MAIN_MENU;
-                    SetEntities();
-                }
-                break;
+            }
+            break;
+
+        case (STATE_GAME_OVER):
+            if (keys[SDL_SCANCODE_SPACE]) {
+                mode = STATE_MAIN_MENU;
+                SetEntities();
+            }
+            break;
         }
-        
+
     }
-    
+
     void ProcessEvent(SDL_Event event) {
         if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
             done = true;
@@ -613,12 +765,12 @@ struct GameState {
                 if (mode == STATE_GAME_LEVEL1) {
                     mode = STATE_GAME_LEVEL2;
                     SetEntities();
-                    
+
                 }
                 else if (mode == STATE_GAME_LEVEL2) {
                     mode = STATE_GAME_LEVEL3;
                     SetEntities();
-                    
+
                 }
                 else if (mode == STATE_GAME_LEVEL3) {
                     mode = STATE_MAIN_MENU;
@@ -627,20 +779,20 @@ struct GameState {
             if (event.key.keysym.scancode == SDL_SCANCODE_A) {
                 if (player.wallJump && player.collidedLeft) {
                     player.wallJump = false;
-                    player.velX = TILE_SIZE * 8;
-                    player.velY = TILE_SIZE * 4;
+                    player.velX = TILE_SIZE * 12;
+                    player.velY = TILE_SIZE * 8;
                 }
             }
             if (event.key.keysym.scancode == SDL_SCANCODE_D) {
                 if (player.wallJump && player.collidedRight) {
                     player.wallJump = false;
-                    player.velX = -TILE_SIZE * 8;
-                    player.velY = TILE_SIZE * 4;
+                    player.velX = -TILE_SIZE * 12;
+                    player.velY = TILE_SIZE * 8;
                 }
             }
         }
     }
-    
+
     void DrawTiles(FlareMap& map) {
         std::vector<float> vertexData;
         std::vector<float> texCoordData;
@@ -658,7 +810,7 @@ struct GameState {
                         TILE_SIZE * x, -TILE_SIZE * y,
                         (TILE_SIZE * x) + TILE_SIZE, (-TILE_SIZE * y) - TILE_SIZE,
                         (TILE_SIZE * x) + TILE_SIZE, -TILE_SIZE * y
-                    });
+                        });
                     texCoordData.insert(texCoordData.end(), {
                         u, v,
                         u, v + (spriteHeight),
@@ -666,27 +818,27 @@ struct GameState {
                         u, v,
                         u + spriteWidth, v + (spriteHeight),
                         u + spriteWidth, v
-                    });
-                    
+                        });
+
                 }
             }
         }
-        
+
         glUseProgram(program.programID);
-        
+
         glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertexData.data());
         glEnableVertexAttribArray(program.positionAttribute);
-        
+
         glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoordData.data());
         glEnableVertexAttribArray(program.texCoordAttribute);
-        
+
         glBindTexture(GL_TEXTURE_2D, Texture.textureID);
         glDrawArrays(GL_TRIANGLES, 0, vertexData.size() / 2);
-        
+
         glDisableVertexAttribArray(program.positionAttribute);
         glDisableVertexAttribArray(program.texCoordAttribute);
     }
-    
+
     void DrawText(std::string text, float size, float spacing, float posx, float posy) {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::translate(modelMatrix, glm::vec3(posx, posy, 0.0f));
@@ -705,7 +857,7 @@ struct GameState {
                 ((size + spacing) * i) + (0.5f * size), -0.5f * size,
                 ((size + spacing) * i) + (0.5f * size), 0.5f * size,
                 ((size + spacing) * i) + (-0.5f * size), -0.5f * size,
-            });
+                });
             texCoordData.insert(texCoordData.end(), {
                 texture_x, texture_y,
                 texture_x, texture_y + character_size,
@@ -713,94 +865,95 @@ struct GameState {
                 texture_x + character_size, texture_y + character_size,
                 texture_x + character_size, texture_y,
                 texture_x, texture_y + character_size,
-            });
+                });
         }
         glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertexData.data());
         glEnableVertexAttribArray(program.positionAttribute);
         glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, texCoordData.data());
         glEnableVertexAttribArray(program.texCoordAttribute);
         glBindTexture(GL_TEXTURE_2D, font);
-        
+
         glDrawArrays(GL_TRIANGLES, 0, text.size() * 6);
-        
+
         glDisableVertexAttribArray(program.positionAttribute);
         glDisableVertexAttribArray(program.texCoordAttribute);
-        
+
     }
-    
+
     void SetEntities() {
+        hitbox = NULL;
         switch (mode) {
-            case (STATE_GAME_LEVEL1):
-                player = Entity(
-                                level1.entities[0].x + TILE_SIZE, level1.entities[0].y + (TILE_SIZE * 2),
-                                TILE_SIZE, TILE_SIZE, false
-                                );
-                player.sheet = PlayerSprites;
-                player.spriteIndex = 0;
-                player.sprites = { 0 };
-                //                annoying = Entity(
-                //                                  level1.entities[0].x + (TILE_SIZE * 4), level1.entities[0].y + (TILE_SIZE * 2),
-                //                                  TILE_SIZE, TILE_SIZE, false
-                //                                  );
-                //                annoying.sheet = Texture;
-                //                annoying.spriteIndex = 76;
-                //                annoying.spriteIndex = { 76 };
-                
-                victory = Entity(
-                                 level1.entities[2].x + (TILE_SIZE), level1.entities[2].y + (TILE_SIZE),
-                                 TILE_SIZE, TILE_SIZE, false
-                                 );
-                victory.sheet = Texture;
-                victory.spriteIndex = 0;
-                victory.sprites = { 48 };
-                
-                
-                break;
-                
-            case (STATE_GAME_LEVEL2):
-                player = Entity(
-                                level2.entities[0].x, level2.entities[0].y + (TILE_SIZE * 2),
-                                TILE_SIZE, TILE_SIZE, false
-                                );
-                player.sheet = PlayerSprites;
-                player.spriteIndex = 0;
-                player.sprites = { 0 };
-                
-                victory = Entity(
-                                 level2.entities[1].x + (TILE_SIZE), level2.entities[1].y + (TILE_SIZE),
-                                 TILE_SIZE, TILE_SIZE, false
-                                 );
-                victory.sheet = Texture;
-                victory.spriteIndex = 0;
-                victory.sprites = { 48 };
-                
-                break;
-                
-            case (STATE_GAME_LEVEL3):
-                player = Entity(
-                                level3.entities[0].x, level3.entities[0].y + (TILE_SIZE * 2),
-                                TILE_SIZE, TILE_SIZE, false
-                                );
-                player.sheet = PlayerSprites;
-                player.spriteIndex = 0;
-                player.sprites = { 0 };
-                
-                victory = Entity(
-                                 level3.entities[11].x + (TILE_SIZE), level3.entities[11].y + (TILE_SIZE),
-                                 TILE_SIZE, TILE_SIZE, false
-                                 );
-                victory.sheet = Texture;
-                victory.spriteIndex = 0;
-                victory.sprites = { 48 };
-                break;
-                
-            case (STATE_MAIN_MENU):
-            case (STATE_GAME_OVER):
-                break;
-                //maybe move player entity off screen
+        case (STATE_GAME_LEVEL1):
+            player = Entity(
+                level1.entities[0].x, level1.entities[0].y,
+                TILE_SIZE, TILE_SIZE, false
+            );
+            player.sheet = PlayerSprites;
+            player.spriteIndex = 0;
+            player.sprites = { 0 };
+            //                annoying = Entity(
+            //                                  level1.entities[0].x + (TILE_SIZE * 4), level1.entities[0].y + (TILE_SIZE * 2),
+            //                                  TILE_SIZE, TILE_SIZE, false
+            //                                  );
+            //                annoying.sheet = Texture;
+            //                annoying.spriteIndex = 76;
+            //                annoying.spriteIndex = { 76 };
+
+            victory = Entity(
+                level1.entities[1].x, level1.entities[1].y,
+                TILE_SIZE, TILE_SIZE, false
+            );
+            victory.sheet = Texture;
+            victory.spriteIndex = 0;
+            victory.sprites = { 48 };
+
+
+            break;
+
+        case (STATE_GAME_LEVEL2):
+            player = Entity(
+                level2.entities[0].x, level2.entities[0].y,
+                TILE_SIZE, TILE_SIZE, false
+            );
+            player.sheet = PlayerSprites;
+            player.spriteIndex = 0;
+            player.sprites = { 0 };
+
+            victory = Entity(
+                level2.entities[1].x, level2.entities[1].y,
+                TILE_SIZE, TILE_SIZE, false
+            );
+            victory.sheet = Texture;
+            victory.spriteIndex = 0;
+            victory.sprites = { 48 };
+
+            break;
+
+        case (STATE_GAME_LEVEL3):
+            player = Entity(
+                level3.entities[0].x, level3.entities[0].y,
+                TILE_SIZE, TILE_SIZE, false
+            );
+            player.sheet = PlayerSprites;
+            player.spriteIndex = 0;
+            player.sprites = { 0 };
+
+            victory = Entity(
+                level3.entities[1].x, level3.entities[1].y,
+                TILE_SIZE, TILE_SIZE, false
+            );
+            victory.sheet = Texture;
+            victory.spriteIndex = 0;
+            victory.sprites = { 48 };
+            break;
+
+        case (STATE_MAIN_MENU):
+        case (STATE_GAME_OVER):
+            break;
+            //maybe move player entity off screen
         }
     }
-    
+
     void Load() {
         font = LoadTexture(RESOURCE_FOLDER"font1.png");
         Texture = SpriteSheet(LoadTexture(RESOURCE_FOLDER"arne_sprites.PNG"), 16, 8);
@@ -809,7 +962,7 @@ struct GameState {
         level2.Load(RESOURCE_FOLDER"level2.txt");
         level3.Load(RESOURCE_FOLDER"level3.txt");
     }
-    
+
 };
 
 int main(int argc, char *argv[])
@@ -818,14 +971,14 @@ int main(int argc, char *argv[])
     displayWindow = SDL_CreateWindow("My Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(displayWindow);
     SDL_GL_MakeCurrent(displayWindow, context);
-    
+
 #ifdef _WINDOWS
     glewInit();
 #endif
-    
+
     ShaderProgram program;
     program.Load(RESOURCE_FOLDER"vertex_textured.glsl", RESOURCE_FOLDER"fragment_textured.glsl");
-    
+
     glClearColor(0.039f, 0.596f, 0.674f, 1.0f);
     glm::mat4 projectionMatrix = glm::mat4(1.0f);
     glm::mat4 modelMatrix = glm::mat4(1.0f);
@@ -833,33 +986,33 @@ int main(int argc, char *argv[])
     projectionMatrix = glm::ortho(-1.777f, 1.777f, -1.0f, 1.0f, -1.0f, 1.0f);
     program.SetProjectionMatrix(projectionMatrix);
     glUseProgram(program.programID);
-    
+
     // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     GameState game = GameState(program);
     game.Load();
-    
+
     SDL_Event event;
     while (!done) {
-        
+
         glClear(GL_COLOR_BUFFER_BIT);
-        
+
         const Uint8 *keys = SDL_GetKeyboardState(NULL);
         float ticks = (float)SDL_GetTicks() / 1000.0f;
         float elapsed = ticks - lastFrameTicks;
         lastFrameTicks = ticks;
-        
+
         while (SDL_PollEvent(&event)) {
             game.ProcessEvent(event);
         }
-        
+
         game.ProcessInput(keys);
-        
+
         game.Render();
         game.Update(elapsed);
-        
+
         SDL_GL_SwapWindow(displayWindow);
     }
-    
+
     SDL_Quit();
     return 0;
 }

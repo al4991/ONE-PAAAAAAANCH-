@@ -1,6 +1,6 @@
 [header]
 width=50
-height=20
+height=30
 tilewidth=16
 tileheight=16
 orientation=orthogonal
@@ -13,6 +13,16 @@ tileset=cuties.png,32,32,0,0
 [layer]
 type=layer
 data=
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 97,98,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,97,98,0,0,0,0,0,0,0,0,0,0,97,98,0,0,0,0,0,0,97,98,0,0,0,0,0,0,0,0,0,97,98,113,114,115,116,0,0,0,0,0,0,0,0,0,
 0,0,113,114,115,116,0,0,0,113,114,115,116,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -37,61 +47,60 @@ data=
 [ObjectsLayer]
 # Player
 type=Player
-location=1,9,2,2
-
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=9,7,1,1
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=15,4,1,1
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=19,3,1,1
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=23,4,1,1
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=27,5,1,1
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=31,3,1,1
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=35,4,1,1
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=38,4,1,1
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=42,3,1,1
-
-[ObjectsLayer]
-# Annoying
-type=Annoying
-location=42,1,1,1
+location=1,21,0,0
 
 [ObjectsLayer]
 # Victory
 type=Victory
-location=45,9,1,1
+location=45,18,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=9,16,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=15,13,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=19,12,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=23,13,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=27,14,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=31,12,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=35,13,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=38,13,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=42,12,1,1
+
+[ObjectsLayer]
+# Annoying
+type=Annoying
+location=42,10,1,1
 
