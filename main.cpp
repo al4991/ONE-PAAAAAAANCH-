@@ -34,7 +34,7 @@ using namespace std;
 float lastFrameTicks = 0.0f;
 std::vector<int> solidTiles = { 0, 1, 2, 6, 16, 17, 18, 19, 32, 33, 34, 35, 100, 101 };
 
-enum GameMode { STATE_MAIN_MENU, STATE_GAME_LEVEL, STATE_GAME_OVER };
+enum GameMode { STATE_MAIN_MENU, STATE_GAME_LEVEL1, STATE_GAME_LEVEL2, STATE_GAME_LEVEL3, STATE_GAME_OVER };
 enum EntityType {PLAYER, ANNOYING, WINTOKEN};
 
 SDL_Window* displayWindow;
@@ -407,9 +407,11 @@ struct GameState {
     FlareMap level2 = FlareMap();
     FlareMap level3 = FlareMap();
     
-    int level = 2; 
+    //int level = 1; 
 
     Entity player;
+    Entity annoying; 
+    Entity wintoken;
     ShaderProgram program;
 
     GameState(ShaderProgram& p) {
@@ -418,28 +420,30 @@ struct GameState {
 
     void Render() {
         switch (mode) {
+        case (STATE_MAIN_MENU): 
             RenderMenu(); 
-        break;
+            break;
 
-        case(STATE_GAME_LEVEL):
 
-            switch (level) {
-            case (1):
-                RenderLevel(level1);
-                break;
+        case(STATE_GAME_LEVEL1):
+            RenderLevel(level1);
+            player.Render(program);
+            //annoying.Render(program); 
+            //wintoken.Render(program); 
+            break;
 
-            case (2):
-                RenderLevel(level2); 
-                break;
 
-            case (3):
-                RenderLevel(level3); 
-                break;
-            }
-
-            // Where all the other rendering should go for enemies and the such
+        case(STATE_GAME_LEVEL2):
+            RenderLevel(level2);
             player.Render(program);
             break;
+
+
+        case(STATE_GAME_LEVEL3):
+            RenderLevel(level3);
+            player.Render(program);
+            break;
+
 
         case (STATE_GAME_OVER):
             DrawText("oof", 0.3f, 0.0f, -1.1f, 0.8f);
@@ -451,7 +455,7 @@ struct GameState {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         glm::mat4 viewMatrix = glm::mat4(1.0f);
         float xOffset = std::min(std::max(-player.x, ((float)map.mapWidth * -TILE_SIZE) + 1.777f), -1.777f);
-        float yOffset = std::min(std::max(-player.y, ((float)map.mapHeight * -TILE_SIZE) + 4.0f), 2.0f);
+        float yOffset = std::min(std::max(-player.y, ((float)map.mapHeight * -TILE_SIZE)), 1.0f);
         viewMatrix = glm::translate(viewMatrix, glm::vec3(xOffset, yOffset, 0.0f));
         program.SetModelMatrix(modelMatrix);
         program.SetViewMatrix(viewMatrix);
@@ -463,37 +467,33 @@ struct GameState {
         glm::mat4 viewMatrix = glm::mat4(1.0f);
         program.SetViewMatrix(viewMatrix);
         program.SetModelMatrix(modelMatrix);
-        DrawText("WELCOME!!", 0.3f, 0.0f, -1.1f, 0.8f);
-        DrawText("THIS IS A FUN GAME!", 0.2f, 0.00001f, -1.7f, -0.0f);
-        DrawText("PRESS THE SPACEBAR", 0.2f, 0.00001f, -1.75f, -0.5f);
+        DrawText("Oof", 0.2f, 0.00001f, -0.5f, -0.0f);
+        DrawText("PRESS THE SPACEBAR", 0.1f, 0.00001f, -0.4f, -0.5f);
         DrawText("PRESS Q to QUIT", 0.05f, 0.00001f, 1.0f, -0.9f);
     }
 
     void Update(float elapsed) {
         switch (mode) {
         case (STATE_MAIN_MENU):
-            glm::mat4 viewMatrix = glm::mat4(1.0f);
+            /*glm::mat4 viewMatrix = glm::mat4(1.0f);
             glm::mat4 modelMatrix = glm::mat4(1.0f);
             program.SetViewMatrix(viewMatrix);
             program.SetModelMatrix(modelMatrix);
-            DrawText("THIS IS A FUN GAME!", 0.2f, 0.00001f, -1.7f, -0.0f);
-            DrawText("PRESS THE SPACEBAR", 0.2f, 0.00001f, -1.72f, -0.5f);
-            DrawText("PRESS Q to QUIT", 0.05f, 0.00001f, 1.0f, -0.9f);
+            DrawText("Oof", 0.5f, 0.00001f, -1.7f, -0.0f);
+            DrawText("PRESS THE SPACEBAR", 0.09f, 0.00001f, -1.75f, -0.5f);
+            DrawText("PRESS Q to QUIT", 0.05f, 0.00001f, 1.0f, -0.9f);*/
             break;
 
-        case(STATE_GAME_LEVEL):
-            switch (level) {
-            case (1):
-                player.Update(elapsed, &level1);
-                break;
-            case (2):
-                player.Update(elapsed, &level2);
-                break;
-            case (3):
-                player.Update(elapsed, &level3);
-                break;
-            }
+        case(STATE_GAME_LEVEL1):
+            player.Update(elapsed, &level1);
             break;
+        case(STATE_GAME_LEVEL2):
+            player.Update(elapsed, &level2);
+            break;
+        case(STATE_GAME_LEVEL3):
+            player.Update(elapsed, &level3);
+            break;
+            
         }
     }
 
@@ -501,18 +501,24 @@ struct GameState {
         switch (mode) {
         case (STATE_MAIN_MENU):
             if (keys[SDL_SCANCODE_SPACE]) {
-                mode = STATE_GAME_LEVEL;
-                SetPlayer(); 
+                mode = STATE_GAME_LEVEL1;
+                SetEntities(); 
             }
             break; 
 
-        case (STATE_GAME_LEVEL):
+        case (STATE_GAME_LEVEL1):
+        case (STATE_GAME_LEVEL2):
+        case (STATE_GAME_LEVEL3):
+
             if (keys[SDL_SCANCODE_LEFT]) {
                 player.accX = -0.5f;
             } 
             if (keys[SDL_SCANCODE_RIGHT]) {
                 player.accX = 0.5f;
             } 
+            if (!(keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_RIGHT])) {
+                player.accX = 0.0f;
+            }
             if (keys[SDL_SCANCODE_UP]) {
                 player.x = 0.0f;
                 player.y = 0.0f;
@@ -530,7 +536,15 @@ struct GameState {
                 player.velY = 0.0f;
             }
             break; 
+
+        case (STATE_GAME_OVER):
+            if (keys[SDL_SCANCODE_SPACE]) {
+                mode = STATE_MAIN_MENU;
+                SetEntities();
+            }
+            break;
         }
+        
     }
 
     void DrawTiles(FlareMap& map) {
@@ -622,11 +636,37 @@ struct GameState {
 
     }
     
-    void SetPlayer() {
-        switch (level) {
-        case 1: 
-            break; 
-        case 2:
+    void SetEntities() {
+        switch (mode) {
+        case (STATE_GAME_LEVEL1): 
+            player = Entity(
+                level1.entities[0].x + TILE_SIZE, level1.entities[0].y + (TILE_SIZE * 2),
+                TILE_SIZE, TILE_SIZE, false
+            );
+            player.sheet = PlayerSprites;
+            player.spriteIndex = 0;
+            player.sprites = { 0 };
+
+            //annoying = Entity(
+            //  level1.entities[0].x + (TILE_SIZE * 4), level1.entities[0].y + (TILE_SIZE * 2),
+            //  TILE_SIZE, TILE_SIZE, false
+            //);
+            //annoying.sheet = Texture;
+            //annoying.spriteIndex = 76; 
+            //annoying.spriteIndex = { 76 }; 
+            //
+            //wintoken = Entity(
+            //  level1.entities[0].x + (TILE_SIZE * 8), level1.entities[0].y + (TILE_SIZE * 2),
+            //  TILE_SIZE, TILE_SIZE, false
+            //);
+            //wintoken.sheet = Texture;
+            //wintoken.spriteIndex = 48;
+            //wintoken.spriteIndex = { 48 }; 
+            //
+
+            break;
+
+        case (STATE_GAME_LEVEL2):
             player = Entity(
                 level2.entities[0].x, level2.entities[0].y + (TILE_SIZE * 2),
                 TILE_SIZE, TILE_SIZE, false
@@ -635,8 +675,21 @@ struct GameState {
             player.spriteIndex = 0; 
             player.sprites = { 0 }; 
             break; 
-        case 3:
+
+        case (STATE_GAME_LEVEL3):
+            player = Entity(
+                level3.entities[0].x, level3.entities[0].y + (TILE_SIZE * 2),
+                TILE_SIZE, TILE_SIZE, false
+            );
+            player.sheet = PlayerSprites;
+            player.spriteIndex = 0;
+            player.sprites = { 0 };
+            break;
+
+        case (STATE_MAIN_MENU):
+        case (STATE_GAME_OVER):
             break; 
+            //maybe move plaer entity off screen
         }
     }
     
@@ -644,10 +697,11 @@ struct GameState {
         font = LoadTexture(RESOURCE_FOLDER"font1.png");
         Texture = SpriteSheet(LoadTexture(RESOURCE_FOLDER"arne_sprites.PNG"), 16, 8);
         PlayerSprites = SpriteSheet(LoadTexture(RESOURCE_FOLDER"yooyoo.PNG"), 6, 4);
-        //level1.Load(RESOURCE_FOLDER"level1.txt"); 
+        level1.Load(RESOURCE_FOLDER"level1.txt"); 
         level2.Load(RESOURCE_FOLDER"level2.txt"); 
         level3.Load(RESOURCE_FOLDER"level3.txt"); 
     }
+
 };
 
 int main(int argc, char *argv[])
@@ -675,6 +729,7 @@ int main(int argc, char *argv[])
     // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     GameState test = GameState(program);
     test.Load(); 
+
     SDL_Event event;
     bool done = false;
     while (!done) {
@@ -689,6 +744,24 @@ int main(int argc, char *argv[])
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE) {
                 done = true;
+            }
+            else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.scancode == SDL_SCANCODE_T) {
+                    //move to next level mode
+                    if (test.mode == STATE_GAME_LEVEL1) {
+                        test.mode = STATE_GAME_LEVEL2;
+                        test.SetEntities();
+
+                    }
+                    else if (test.mode == STATE_GAME_LEVEL2) {
+                        test.mode = STATE_GAME_LEVEL3;
+                        test.SetEntities();
+
+                    }
+                    else if (test.mode == STATE_GAME_LEVEL3) {
+                        test.mode = STATE_MAIN_MENU;
+                    }
+                }
             }
         }       
         test.ProcessInput(keys);
