@@ -130,6 +130,27 @@ void GameState::RenderWin() {
 }
 
 void GameState::Update(float elapsed) {
+	animationElapsed += elapsed;
+	if (animationElapsed > 1.0 / framesPerSecond) {
+		player.spriteIndex++;
+		victory.spriteIndex++;
+		animationElapsed = 0.0f;
+		if (player.spriteIndex > 2) {
+			player.spriteIndex = 0;
+		}
+		if (victory.spriteIndex > 11) {
+			victory.spriteIndex = 0;
+		}
+
+		for (Entity& i : annoying) {
+			if (!i.isStatic) {
+				i.spriteIndex++;
+				if (i.spriteIndex > 1) {
+					i.spriteIndex = 0;
+				}
+			}
+		}
+	}
     switch (mode) {
     case (STATE_MAIN_MENU):
     case (STATE_GAME_OVER):

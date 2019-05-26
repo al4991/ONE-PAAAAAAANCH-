@@ -80,35 +80,12 @@ int main(int argc, char *argv[])
 		float ticks = (float)SDL_GetTicks() / 1000.0f;
 		float elapsed = ticks - lastFrameTicks;
 		lastFrameTicks = ticks;
-		
-		animationElapsed += elapsed; 
-		if (animationElapsed > 1.0 / framesPerSecond) {
-			game.player.spriteIndex++; 
-			game.victory.spriteIndex++; 
-			animationElapsed = 0.0f; 
-			if (game.player.spriteIndex > 2) {
-				game.player.spriteIndex = 0; 
-			}
-			if (game.victory.spriteIndex > 11) {
-				game.victory.spriteIndex = 0; 
-			}
-
-			for (Entity& i : game.annoying) {
-				if (!i.isStatic) {
-					i.spriteIndex++; 
-					if (i.spriteIndex > 1) {
-						i.spriteIndex = 0; 
-					}
-				}
-			}
-		}
 
 		while (SDL_PollEvent(&event)) {
 			game.ProcessEvent(event);
 		}
 
 		game.ProcessInput(keys);
-
 		game.Render();
 		game.Update(elapsed);
 
