@@ -1,4 +1,4 @@
-# Oof-the-Game
+# OOf the Game
 CS 3113 Final Project 
 
 This game was created by Mithila Das and Andrew Lucero
